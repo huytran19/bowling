@@ -1,8 +1,6 @@
 import Ammo from '../node_modules/ammojs-typed'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
-import { threadId } from 'worker_threads'
-import { ClampToEdgeWrapping, Vector3 } from 'three'
 
 export default class Bowling {
 	clock!: THREE.Clock
@@ -26,7 +24,8 @@ export default class Bowling {
 	draggable!: THREE.Object3D
 	found!: THREE.Intersection<THREE.Object3D<THREE.Event>>[]
 	shootTime!: number
-	isPop: boolean
+	isPop!: boolean
+	redBall: THREE.Object3D<THREE.Event> | undefined
 	constructor() {
 		this.rigidBodies = []
 
@@ -34,7 +33,7 @@ export default class Bowling {
 		this.createRenderer()
 		this.createScene()
 		this.createCamera()
-		this.createGeometry()
+		// this.createGeometry()
 		this.createLights()
 		this.createControls()
 
@@ -71,7 +70,7 @@ export default class Bowling {
 
 	public createCamera() {
 		this.camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000)
-		this.camera.position.z = 80
+		this.camera.position.z = 120
 		this.camera.position.y = 40
 		this.camera.lookAt(0,0, 20)
 	}
@@ -89,7 +88,7 @@ export default class Bowling {
 		let dirLight = new THREE.DirectionalLight(0xffffff, 1)
 		dirLight.position.set( - 10, 18, 5 );
 			dirLight.castShadow = true;
-			const d = 50;
+			const d = 100;
 			dirLight.shadow.camera.left = - d;
 			dirLight.shadow.camera.right = d;
 			dirLight.shadow.camera.top = d;
@@ -104,7 +103,7 @@ export default class Bowling {
 	}
 
 	public createControls() {
-		// this.controls = new OrbitControls(this.camera, this.renderer.domElement)
+		this.controls = new OrbitControls(this.camera, this.renderer.domElement)
 	}
 
 	public startAmmo() {
@@ -120,9 +119,9 @@ export default class Bowling {
 
 		this.setupPhysicsWorld(Ammo)
 		this.createPlane(Ammo)
-		let pos = {x: 0, y: 3, z: 40}
+		let pos = {x: 0, y: 3, z: 60}
+		this.createBlueBalls()
 		this.createBall(Ammo, pos, false)
-		this.createBall2(Ammo)
 		this.animate()
 	}
 
@@ -135,11 +134,12 @@ export default class Bowling {
     	this.physicsWorld = new Ammo.btDiscreteDynamicsWorld(
         	this.dispatcher, this.broadphase, this.solver, this.collisionConfiguration);
     	this.physicsWorld.setGravity(new Ammo.btVector3(0, -9.8, 0));
+		
 	}
 
 	public createPlane(Ammo = this.ammoClone) {
 		let pos = { x: 0, y: 0, z: 0} 
-		let scale = { x: 30, y: 2, z: 100}
+		let scale = { x: 35, y: 2, z: 150}
 		let quat = { x: 0, y: 0, z: 0, w: 1}
 		let mass = 0
 
@@ -147,6 +147,8 @@ export default class Bowling {
 		blockPlane.position.set(pos.x, pos.y, pos.z)
 
 		blockPlane.receiveShadow = true
+
+		blockPlane.name = 'GROUND'
 
 		this.scene.add(blockPlane)
 
@@ -190,7 +192,7 @@ export default class Bowling {
 		transform.setIdentity()
 		transform.setOrigin(new Ammo.btVector3(pos.x, pos.y, pos.z))
 		transform.setRotation(new Ammo.btQuaternion(quat.x, quat.y, quat.z, quat.w))
-
+		
 		let defaultMotionState = new Ammo.btDefaultMotionState(transform)
 
 		let localInertia = new Ammo.btVector3(0, 0, 0)
@@ -219,8 +221,36 @@ export default class Bowling {
 		}
 	}
 
-	public createBall2(Ammo = this.ammoClone) {
-		let pos = { x: 0, y: 3, z: -20} 
+	public createBlueBalls() {
+		for (let i = 0; i < 4; i++) {
+			for (let j = i * -2.5; j <= i * 2.5; j += 5) {
+				let pos = { x: j, y: 3, z: -40 - i*5 }
+				this.createBlueBall(this.ammoClone, pos)
+			}
+		}
+		// let pos1 = {x: 0, y: 10 , z: -15}
+		// this.createBlueBall(this.ammoClone, pos1)
+		// let pos2 = {x: -2.5, y: 10 , z: -20}
+		// this.createBlueBall(this.ammoClone, pos2)
+		// let pos3 = {x: 2.5, y: 10 , z: -20}
+		// this.createBlueBall(this.ammoClone, pos3)
+		// let pos4 = {x: -5, y: 10 , z: -25}
+		// this.createBlueBall(this.ammoClone, pos4)
+		// let pos5 = {x: 0, y: 10 , z: -25}
+		// this.createBlueBall(this.ammoClone, pos5)
+		// let pos6 = {x: 5, y: 10 , z: -25}
+		// this.createBlueBall(this.ammoClone, pos6)
+		// let pos7 = {x: -7.5, y: 10 , z: -30}
+		// this.createBlueBall(this.ammoClone, pos7)
+		// let pos8 = {x: -2.5, y: 10 , z: -30}
+		// this.createBlueBall(this.ammoClone, pos8)
+		// let pos9 = {x: 2.5, y: 10 , z: -30}
+		// this.createBlueBall(this.ammoClone, pos9)
+		// let pos10 = {x: 7.5, y: 10 , z: -30}
+		// this.createBlueBall(this.ammoClone, pos10)
+	}
+
+	public createBlueBall(Ammo = this.ammoClone, pos: {x: number, y: number, z: number}) {
 		let radius = 2
 		let quat = { x: 0, y: 0, z: 0, w: 1}
 		let mass = 1
@@ -230,7 +260,7 @@ export default class Bowling {
 
 		ball.castShadow = true
 		ball.receiveShadow = true
-
+		ball.name = 'BLUE'
 		this.scene.add(ball)
 
 		let transform = new Ammo.btTransform()
@@ -270,17 +300,20 @@ export default class Bowling {
 		this.delta = this.clock.getDelta()*2
 		// this.controls.update()
 		
-		if (this.physicsWorld) {
-			this.updatePhysics(this.delta)
-		}
-		this.dragObject()
 		if (this.shootTime) {
-			if (this.clock.elapsedTime - this.shootTime > 40) {
+			if (this.clock.elapsedTime - this.shootTime > 4) {
 				if (this.isPop) {
 					this.isPop = false
-					this.scene.children.pop()
+					if (this.scene.children[this.scene.children.length - 1].name !== 'GROUND') {
+						this.scene.children.pop()
+					}
+					this.rigidBodies.pop()
 				}
 			}
+		}
+		if (this.physicsWorld) {
+			this.updatePhysics(this.delta)
+			this.dragObject()
 		}
 		this.renderer.render(this.scene, this.camera)
 		requestAnimationFrame(this.animate)
@@ -293,7 +326,6 @@ export default class Bowling {
 			let threeObj = this.rigidBodies[i]
 			let ammoObj = threeObj.userData.physicsBody
 			let ms = ammoObj.getMotionState()
-
 			if (ms) {
 				ms.getWorldTransform(this.tempTransform)
 				let pos = this.tempTransform.getOrigin()
@@ -315,17 +347,14 @@ export default class Bowling {
 
 	onPointerClick = (e: MouseEvent) => {
 		if (this.draggable) {
-			console.log(this.found[0].object.position);
-			this.scene.remove(this.found[0].object)
+			this.physicsWorld.removeRigidBody(this.draggable.userData.physicsBody)
+			this.rigidBodies.pop()
 			let pos = {x: this.draggable.position.x, y: 3, z: this.draggable.position.z}
-			for (const o of this.scene.children) {
-				console.log(o.name);
-			}
 			this.createBall(this.ammoClone, pos, true)
-			this.isPop = true
+			this.scene.remove(this.draggable)
 			this.draggable = null as any
+			this.isPop = true
 			this.shootTime = this.clock.getElapsedTime()
-			
 			return
 		}
 		this.clickMouse.x = (e.clientX / window.innerWidth) * 2 - 1
@@ -346,6 +375,7 @@ export default class Bowling {
 		if (this.draggable != null) {
 			this.raycaster.setFromCamera(this.moveMouse, this.camera)
 			this.found = this.raycaster.intersectObjects(this.scene.children)
+			
 			if (this.found.length > 0) {
 				for (let o of this.found) {
 					if (!o.object.userData.ground) {
@@ -357,10 +387,15 @@ export default class Bowling {
 			}
 		}
 	}
+
 }
 
 const bowling = new Bowling()
 window.c = () => {
 	let pos = {x: 0, y: 10 , z: 40}
 	bowling.createBall(bowling.ammoClone, pos, false)
+}
+window.a = () => {
+	const name = bowling.scene.getObjectByName('BALL')
+	bowling.scene.remove(name)
 }
